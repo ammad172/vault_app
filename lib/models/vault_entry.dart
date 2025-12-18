@@ -47,6 +47,7 @@ class VaultEntry {
 
   Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'title': title,
       'username': username,
       'password': password,
@@ -73,4 +74,14 @@ class VaultEntry {
           DateTime.now(),
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is VaultEntry &&
+          runtimeType == other.runtimeType &&
+          id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
 }

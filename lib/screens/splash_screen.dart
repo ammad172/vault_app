@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/secure_storage_service.dart';
+import 'onboarding_screen.dart';
 import 'setup_master_password_screen.dart';
 import 'unlock_screen.dart';
 
@@ -21,18 +23,25 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _bootstrap() async {
-    await Future.delayed(const Duration(milliseconds: 800));
+    await Future.delayed(const Duration(milliseconds: 1200));
 
+    // Check if this is first launch
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenOnboarding = prefs.getBool('has_seen_onboarding') ?? false;
     final hasMaster = await SecureStorageService.hasMasterPassword();
 
     if (!mounted) return;
 
-    if (hasMaster) {
-      Navigator.of(context)
-          .pushReplacementNamed(UnlockScreen.routeName);
+    if (!hasSeenOnboarding) {
+      // First time user - show onboarding
+      await prefs.setBool('has_seen_onboarding', true);
+      Navigator.of(context).pushReplacementNamed(OnboardingScreen.routeName);
+    } else if (hasMaster) {
+      // Existing user with vault - show unlock screen
+      Navigator.of(context).pushReplacementNamed(UnlockScreen.routeName);
     } else {
-      Navigator.of(context)
-          .pushReplacementNamed(SetupMasterPasswordScreen.routeName);
+      // Seen onboarding but no vault yet
+      Navigator.of(context).pushReplacementNamed(SetupMasterPasswordScreen.routeName);
     }
   }
 
@@ -53,29 +62,40 @@ class _SplashScreenState extends State<SplashScreen> {
           ),
         ),
         child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: Column(mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.lock_outline_rounded,
-                  size: 72, color: colors.onPrimary),
-              const SizedBox(height: 16),
+              Icon(Icons.shield_rounded,
+                  size: 80, color: colors.onPrimary),
+              const SizedBox(height: 24),
               Text(
                 'VaultLock',
                 style: Theme.of(context)
                     .textTheme
-                    .headlineMedium
-                    ?.copyWith(color: colors.onPrimary),
+                    .headlineLarge
+                    ?.copyWith(
+                      color: colors.onPrimary,
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               const SizedBox(height: 8),
               Text(
-              'Offline Password Vault',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(
-                    color: colors.onPrimary.withValues(alpha: 0.8),
-                  ),
-            ),
+                'Secure Password Manager',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyLarge
+                    ?.copyWith(
+                      color: colors.onPrimary.withOpacity(0.9),
+                    ),
+              ),
+              const SizedBox(height: 48),
+              SizedBox(
+                width: 32,
+                height: 32,
+                child: CircularProgressIndicator(
+                  color: colors.onPrimary,
+                  strokeWidth: 3,
+                ),
+              ),
             ],
           ),
         ),

@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'vault_service.dart';
 import '../models/vault_entry.dart';
 
+/// Service for backing up and restoring vault data to/from Google Drive
 class BackupService {
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: [
@@ -27,7 +28,7 @@ class BackupService {
 
     final driveApi = drive.DriveApi(authClient);
 
-    // 1. Export vault data to JSON
+    // 1. Export vault data to JSON (now includes entry IDs)
     final entries = VaultService.getEntriesSnapshot();
     final data = entries.map((e) => e.toMap()).toList();
     final jsonString = jsonEncode(data);
@@ -96,31 +97,14 @@ class BackupService {
 
     final jsonString = await utf8.decodeStream(media.stream);
     
-    // 3. Import data
+    // 3. Import data with ID preservation
     final List<dynamic> list = jsonDecode(jsonString);
     
     for (final item in list) {
        if (item is Map) {
-         // The key is the ID, but in our backup we might have lost the original key 
-         // if we didn't store it in the map properly. 
-         // Looking at VaultEntry.toMap(), we don't store 'id' explicitly?
-         // Let's check VaultEntry.
-         
-         // Actually, VaultEntry.toMap() doesn't include ID currently.
-         // We should probably rely on a 'id' field if we want to preserve exact IDs,
-         // or we just generate new ones.
-         // However, for restore to work nicely (updating existing), we need IDs.
-         // Let's assume we can derive it or it's new.
-         // If we don't have ID in map, we can't reliably update.
-         // But for now, let's just re-save.
-         
-         // Wait, VaultEntry.fromMap takes an ID.
-         // If the JSON doesn't have an ID, we have a problem.
-         // Let's update the model to include ID in map to be safe.
-         // For now, let's treat it as new entry if ID is missing or match by title?
-         // Simpler: Just save as new for now.
-         
-         final id = DateTime.now().microsecondsSinceEpoch.toString(); 
+         // Preserve the original ID from backup (now included in toMap)
+         final id = item['id'] as String? ?? 
+                    DateTime.now().microsecondsSinceEpoch.toString();
          final entry = VaultEntry.fromMap(id, item);
          await VaultService.saveEntry(entry);
        }

@@ -1,23 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'screens/splash_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'screens/sign_in_screen.dart';
 import 'screens/setup_master_password_screen.dart';
 import 'screens/unlock_screen.dart';
 import 'screens/vault_home_screen.dart';
 import 'screens/add_edit_entry_screen.dart';
 import 'screens/settings_screen.dart';
+import 'services/session_manager.dart';
 
-// Simple global theme controller
+// Global theme controller
 final ValueNotifier<ThemeMode> themeModeNotifier =
     ValueNotifier<ThemeMode>(ThemeMode.system);
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter(); // Initialize encrypted local DB
-  runApp(const VaultApp());
+  await sessionManager.init(); // Initialize session manager
+  runApp(const ProviderScope(child: VaultApp()));
 }
 
 class VaultApp extends StatelessWidget {
@@ -60,6 +64,7 @@ class VaultApp extends StatelessWidget {
           initialRoute: SplashScreen.routeName,
           routes: {
             SplashScreen.routeName: (_) => const SplashScreen(),
+            OnboardingScreen.routeName: (_) => const OnboardingScreen(),
             SignInScreen.routeName: (_) => const SignInScreen(),
             SetupMasterPasswordScreen.routeName: (_) =>
                 const SetupMasterPasswordScreen(),
