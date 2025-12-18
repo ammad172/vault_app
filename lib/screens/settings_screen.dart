@@ -28,7 +28,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadSettings() async {
     final biometrics = await SecureStorageService.isBiometricsEnabled();
     final timeout = sessionManager.timeoutMinutes;
-    
+
     if (mounted) {
       setState(() {
         _biometricsEnabled = biometrics;
@@ -38,47 +38,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _backup(BuildContext context) async {
+    // Capture context-dependent objects before async gap
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
     try {
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (_) => const Center(child: CircularProgressIndicator()),
       );
-      
+
       final backupService = BackupService();
       await backupService.backupToDrive();
-      
-      if (context.mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Backup successful!')),
-        );
-      }
+
+      navigator.pop();
+      messenger.showSnackBar(
+        const SnackBar(content: Text('✅ Backup successful!')),
+      );
     } catch (e) {
-      if (context.mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Backup failed: $e')),
-        );
-      }
+      navigator.pop();
+      messenger.showSnackBar(SnackBar(content: Text('❌ Backup failed: $e')));
     }
   }
 
   Future<void> _restore(BuildContext context) async {
+    // Capture context-dependent objects before any async gap
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Restore from backup?'),
         content: const Text(
           'This will merge your cloud backup with existing local data. Entries with the same ID will be updated.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(dialogContext, true),
             child: const Text('Restore'),
           ),
         ],
@@ -93,23 +95,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
         barrierDismissible: false,
         builder: (_) => const Center(child: CircularProgressIndicator()),
       );
-      
+
       final backupService = BackupService();
       await backupService.restoreFromDrive();
 
-      if (context.mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Restore successful!')),
-        );
-      }
+      navigator.pop();
+      messenger.showSnackBar(
+        const SnackBar(content: Text('✅ Restore successful!')),
+      );
     } catch (e) {
-      if (context.mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Restore failed: $e')),
-        );
-      }
+      navigator.pop();
+      messenger.showSnackBar(SnackBar(content: Text('❌ Restore failed: $e')));
     }
   }
 
@@ -117,9 +113,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final uri = Uri.parse(url);
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open link')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Could not open link')));
       }
     }
   }
@@ -171,7 +167,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Security Section
               _buildSectionHeader(context, 'Security'),
               const SizedBox(height: 8),
-              
+
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 secondary: const Icon(Icons.fingerprint_rounded),
@@ -188,15 +184,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.timer_outlined),
                 title: const Text('Auto-Lock Timeout'),
-                subtitle: Text('Lock after $_autoLockMinutes ${_autoLockMinutes == 1 ? "minute" : "minutes"} of inactivity'),
+                subtitle: Text(
+                  'Lock after $_autoLockMinutes ${_autoLockMinutes == 1 ? "minute" : "minutes"} of inactivity',
+                ),
                 trailing: DropdownButton<int>(
                   value: _autoLockMinutes,
                   underline: const SizedBox(),
                   items: [1, 2, 5, 10, 15, 30, 60]
-                      .map((minutes) => DropdownMenuItem(
-                            value: minutes,
-                            child: Text('$minutes min'),
-                          ))
+                      .map(
+                        (minutes) => DropdownMenuItem(
+                          value: minutes,
+                          child: Text('$minutes min'),
+                        ),
+                      )
                       .toList(),
                   onChanged: (value) async {
                     if (value != null) {
@@ -212,7 +212,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Backup Section
               _buildSectionHeader(context, 'Backup & Sync'),
               const SizedBox(height: 8),
-              
+
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.cloud_upload_outlined),
@@ -221,7 +221,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => _backup(context),
               ),
-              
+
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.cloud_download_outlined),
@@ -230,7 +230,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => _restore(context),
               ),
-              
+
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.account_circle_outlined),
@@ -247,7 +247,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               // Legal Section
               _buildSectionHeader(context, 'Legal & About'),
               const SizedBox(height: 8),
-              
+
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.privacy_tip_outlined),
@@ -258,7 +258,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _launchURL('https://vaultlock.app/privacy');
                 },
               ),
-              
+
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.description_outlined),
@@ -268,7 +268,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   _launchURL('https://vaultlock.app/terms');
                 },
               ),
-              
+
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.info_outlined),
@@ -279,7 +279,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     context: context,
                     applicationName: 'VaultLock',
                     applicationVersion: '1.0.0',
-                    applicationIcon: Icon(Icons.shield, size: 48, color: colors.primary),
+                    applicationIcon: Icon(
+                      Icons.shield,
+                      size: 48,
+                      color: colors.primary,
+                    ),
                     applicationLegalese:
                         '© 2025 VaultLock\n\nYour passwords are encrypted locally using military-grade AES-256 encryption. We never see your data.',
                     children: [
@@ -309,9 +313,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Expanded(
                             child: Text(
                               'VaultLock Premium',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    color: colors.onPrimaryContainer,
-                                  ),
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(color: colors.onPrimaryContainer),
                             ),
                           ),
                         ],
@@ -324,10 +327,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(height: 12),
                       FilledButton.tonal(
                         onPressed: () {
-                          // TODO: Implement subscription flow
+                          // Subscription integration pending - in_app_purchase package ready
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Subscription coming soon! \$3/month or \$30/year'),
+                              content: Text(
+                                'Subscription coming soon! \$3/month or \$30/year',
+                              ),
                             ),
                           );
                         },
@@ -348,9 +353,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Text(
       title,
       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            color: Theme.of(context).colorScheme.primary,
-            fontWeight: FontWeight.bold,
-          ),
+        color: Theme.of(context).colorScheme.primary,
+        fontWeight: FontWeight.bold,
+      ),
     );
   }
 }

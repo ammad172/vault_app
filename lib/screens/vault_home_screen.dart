@@ -24,10 +24,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
   }
 
   void _openEdit(BuildContext context, VaultEntry entry) {
-    Navigator.of(context).pushNamed(
-      AddEditEntryScreen.routeName,
-      arguments: entry,
-    );
+    Navigator.of(
+      context,
+    ).pushNamed(AddEditEntryScreen.routeName, arguments: entry);
   }
 
   List<VaultEntry> _filterEntries(List<VaultEntry> entries) {
@@ -46,7 +45,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
 
     // Filter by category
     if (_selectedCategory != null && _selectedCategory != 'All') {
-      filtered = filtered.where((e) => e.category == _selectedCategory).toList();
+      filtered = filtered
+          .where((e) => e.category == _selectedCategory)
+          .toList();
     }
 
     return filtered;
@@ -58,10 +59,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
       SnackBar(
         content: Text('Password for "${entry.title}" copied'),
         duration: const Duration(seconds: 2),
-        action: SnackBarAction(
-          label: 'OK',
-          onPressed: () {},
-        ),
+        action: SnackBarAction(label: 'OK', onPressed: () {}),
       ),
     );
   }
@@ -69,7 +67,16 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final categories = ['All', 'Email', 'Social', 'Banking', 'Work', 'Shopping', 'Entertainment', 'Other'];
+    final categories = [
+      'All',
+      'Email',
+      'Social',
+      'Banking',
+      'Work',
+      'Shopping',
+      'Entertainment',
+      'Other',
+    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -118,10 +125,14 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
                 SizedBox(
                   height: 60,
                   child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     scrollDirection: Axis.horizontal,
                     children: categories.map((category) {
-                      final isSelected = _selectedCategory == category ||
+                      final isSelected =
+                          _selectedCategory == category ||
                           (_selectedCategory == null && category == 'All');
                       return Padding(
                         padding: const EdgeInsets.only(right: 8),
@@ -130,8 +141,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
                           selected: isSelected,
                           onSelected: (selected) {
                             setState(() {
-                              _selectedCategory =
-                                  category == 'All' ? null : category;
+                              _selectedCategory = category == 'All'
+                                  ? null
+                                  : category;
                             });
                           },
                         ),
@@ -150,7 +162,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                _searchQuery.isNotEmpty || _selectedCategory != null
+                                _searchQuery.isNotEmpty ||
+                                        _selectedCategory != null
                                     ? Icons.search_off_rounded
                                     : Icons.lock_open_rounded,
                                 size: 64,
@@ -158,14 +171,16 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                _searchQuery.isNotEmpty || _selectedCategory != null
+                                _searchQuery.isNotEmpty ||
+                                        _selectedCategory != null
                                     ? 'No matching entries found'
                                     : 'Your vault is empty',
                                 style: Theme.of(context).textTheme.titleMedium,
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                _searchQuery.isNotEmpty || _selectedCategory != null
+                                _searchQuery.isNotEmpty ||
+                                        _selectedCategory != null
                                     ? 'Try adjusting your search or filter'
                                     : 'Tap "Add" to store your first password',
                                 textAlign: TextAlign.center,
@@ -203,7 +218,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
                               ),
                               title: Text(
                                 e.title,
-                                style: const TextStyle(fontWeight: FontWeight.w600),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                               subtitle: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,7 +244,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: colors.secondaryContainer,
-                                          borderRadius: BorderRadius.circular(4),
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
                                         ),
                                         child: Text(
                                           e.category,
@@ -249,15 +268,18 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
                                     tooltip: 'Copy password',
                                     onPressed: () => _copyPassword(e),
                                   ),
-                                  Icon(Icons.chevron_right_rounded,
-                                      color: colors.outline),
+                                  Icon(
+                                    Icons.chevron_right_rounded,
+                                    color: colors.outline,
+                                  ),
                                 ],
                               ),
                               onTap: () => _openEdit(context, e),
                             ),
                           );
                         },
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 8),
                         itemCount: filteredEntries.length,
                       ),
               ),

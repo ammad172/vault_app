@@ -96,14 +96,21 @@ class _PasswordGeneratorDialogState extends State<PasswordGeneratorDialog> {
               decoration: BoxDecoration(
                 color: colors.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: colors.outline.withOpacity(0.2)),
+                border: Border.all(
+                  color: Color.fromARGB(
+                    (colors.outline.a * 0.2).round(),
+                    colors.outline.r.round(),
+                    colors.outline.g.round(),
+                    colors.outline.b.round(),
+                  ),
+                ),
               ),
               child: SelectableText(
                 _generatedPassword,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontFamily: 'monospace',
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontFamily: 'monospace',
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             const SizedBox(height: 12),

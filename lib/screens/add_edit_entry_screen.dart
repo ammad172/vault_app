@@ -58,8 +58,7 @@ class _AddEditEntryScreenState extends State<AddEditEntryScreen> {
     if (_formKey.currentState?.validate() != true) return;
 
     final now = DateTime.now();
-    final id =
-        _editing?.id ?? DateTime.now().microsecondsSinceEpoch.toString();
+    final id = _editing?.id ?? DateTime.now().microsecondsSinceEpoch.toString();
 
     final entry = VaultEntry(
       id: id,
@@ -99,7 +98,9 @@ class _AddEditEntryScreenState extends State<AddEditEntryScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete entry?'),
-        content: Text('Are you sure you want to delete "${_editing!.title}"? This cannot be undone.'),
+        content: Text(
+          'Are you sure you want to delete "${_editing!.title}"? This cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -135,8 +136,15 @@ class _AddEditEntryScreenState extends State<AddEditEntryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final categories = ['Email', 'Social', 'Banking', 'Work', 'Shopping', 'Entertainment', 'Other'];
-    final colors = Theme.of(context).colorScheme;
+    final categories = [
+      'Email',
+      'Social',
+      'Banking',
+      'Work',
+      'Shopping',
+      'Entertainment',
+      'Other',
+    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -204,19 +212,16 @@ class _AddEditEntryScreenState extends State<AddEditEntryScreen> {
                       ),
                       IconButton(
                         icon: Icon(
-                          _obscure
-                              ? Icons.visibility
-                              : Icons.visibility_off,
+                          _obscure ? Icons.visibility : Icons.visibility_off,
                         ),
                         tooltip: _obscure ? 'Show' : 'Hide',
-                        onPressed: () =>
-                            setState(() => _obscure = !_obscure),
+                        onPressed: () => setState(() => _obscure = !_obscure),
                       ),
                     ],
                   ),
                 ),
               ),
-              
+
               // Password strength indicator
               if (_passwordController.text.isNotEmpty) ...[
                 const SizedBox(height: 12),
@@ -225,7 +230,7 @@ class _AddEditEntryScreenState extends State<AddEditEntryScreen> {
                   showFeedback: true,
                 ),
               ],
-              
+
               const SizedBox(height: 16),
 
               // URL

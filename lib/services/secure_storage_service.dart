@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
-import 'package:crypto/crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pointycastle/export.dart';
 
@@ -9,11 +8,10 @@ import 'package:pointycastle/export.dart';
 class SecureStorageService {
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(
-      encryptedShared Preferences: true,
+      sharedPreferencesName: 'vault_prefs',
+      preferencesKeyPrefix: 'vault_',
     ),
-    iOptions: IOSOptions(
-      accessibility: KeychainAccessibility.first_unlock,
-    ),
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
   );
 
   static const _keyMasterSalt = 'master_salt';
@@ -22,7 +20,7 @@ class SecureStorageService {
   static const _keyBiometricsEnabled = 'biometrics_enabled';
   static const _keyFailedAttempts = 'failed_attempts';
   static const _keyLockoutUntil = 'lockout_until';
-  
+
   static const int _maxFailedAttempts = 5;
   static const int _lockoutSeconds = 30;
 
@@ -34,19 +32,20 @@ class SecureStorageService {
     }
 
     final rng = Random.secure();
-    final keyBytes =
-        List<int>.generate(32, (_) => rng.nextInt(256)); // 256-bit key
-    await _storage.write(
-      key: _keyVaultKey,
-      value: base64Encode(keyBytes),
-    );
+    final keyBytes = List<int>.generate(
+      32,
+      (_) => rng.nextInt(256),
+    ); // 256-bit key
+    await _storage.write(key: _keyVaultKey, value: base64Encode(keyBytes));
     return keyBytes;
   }
 
   static Future<List<int>> getVaultKey() async {
     final existing = await _storage.read(key: _keyVaultKey);
     if (existing == null) {
-      throw StateError('Vault key not initialized. Please set up your master password first.');
+      throw StateError(
+        'Vault key not initialized. Please set up your master password first.',
+      );
     }
     return base64Decode(existing);
   }
@@ -91,7 +90,9 @@ class SecureStorageService {
       final lockoutUntil = DateTime.parse(lockoutUntilStr);
       if (DateTime.now().isBefore(lockoutUntil)) {
         final remaining = lockoutUntil.difference(DateTime.now()).inSeconds;
-        throw Exception('Too many failed attempts. Try again in $remaining seconds.');
+        throw Exception(
+          'Too many failed attempts. Try again in $remaining seconds.',
+        );
       } else {
         // Lockout expired, reset
         await _storage.delete(key: _keyLockoutUntil);
@@ -116,7 +117,7 @@ class SecureStorageService {
     for (var i = 0; i < expectedHash.length; i++) {
       diff |= expectedHash[i] ^ actualHash[i];
     }
-    
+
     if (diff != 0) {
       await _recordFailedAttempt();
       return false;
@@ -135,14 +136,19 @@ class SecureStorageService {
 
     if (newAttempts >= _maxFailedAttempts) {
       // Trigger lockout
-      final lockoutUntil = DateTime.now().add(Duration(seconds: _lockoutSeconds));
+      final lockoutUntil = DateTime.now().add(
+        const Duration(seconds: _lockoutSeconds),
+      );
       await _storage.write(
         key: _keyLockoutUntil,
         value: lockoutUntil.toIso8601String(),
       );
       await _storage.write(key: _keyFailedAttempts, value: '0');
     } else {
-      await _storage.write(key: _keyFailedAttempts, value: newAttempts.toString());
+      await _storage.write(
+        key: _keyFailedAttempts,
+        value: newAttempts.toString(),
+      );
     }
   }
 
@@ -152,7 +158,7 @@ class SecureStorageService {
     // Using HMAC-SHA256 for the PRF (Pseudorandom Function)
     final pbkdf2 = PBKDF2KeyDerivator(HMac(SHA256Digest(), 64))
       ..init(Pbkdf2Parameters(Uint8List.fromList(salt), 600000, 32));
-    
+
     return pbkdf2.process(Uint8List.fromList(utf8.encode(password)));
   }
 

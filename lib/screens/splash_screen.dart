@@ -32,16 +32,20 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (!mounted) return;
 
+    // Capture navigator before any additional async work
+    final navigator = Navigator.of(context);
+
     if (!hasSeenOnboarding) {
       // First time user - show onboarding
       await prefs.setBool('has_seen_onboarding', true);
-      Navigator.of(context).pushReplacementNamed(OnboardingScreen.routeName);
+      if (!mounted) return;
+      navigator.pushReplacementNamed(OnboardingScreen.routeName);
     } else if (hasMaster) {
       // Existing user with vault - show unlock screen
-      Navigator.of(context).pushReplacementNamed(UnlockScreen.routeName);
+      navigator.pushReplacementNamed(UnlockScreen.routeName);
     } else {
       // Seen onboarding but no vault yet
-      Navigator.of(context).pushReplacementNamed(SetupMasterPasswordScreen.routeName);
+      navigator.pushReplacementNamed(SetupMasterPasswordScreen.routeName);
     }
   }
 
@@ -52,40 +56,35 @@ class _SplashScreenState extends State<SplashScreen> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              colors.primaryContainer,
-              colors.primary,
-              colors.surface,
-            ],
+            colors: [colors.primaryContainer, colors.primary, colors.surface],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
         child: Center(
-          child: Column(mainAxisSize: MainAxisSize.min,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.shield_rounded,
-                  size: 80, color: colors.onPrimary),
+              Icon(Icons.shield_rounded, size: 80, color: colors.onPrimary),
               const SizedBox(height: 24),
               Text(
                 'VaultLock',
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineLarge
-                    ?.copyWith(
-                      color: colors.onPrimary,
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                  color: colors.onPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Secure Password Manager',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyLarge
-                    ?.copyWith(
-                      color: colors.onPrimary.withOpacity(0.9),
-                    ),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Color.fromARGB(
+                    (colors.onPrimary.a * 0.9).round(),
+                    colors.onPrimary.r.round(),
+                    colors.onPrimary.g.round(),
+                    colors.onPrimary.b.round(),
+                  ),
+                ),
               ),
               const SizedBox(height: 48),
               SizedBox(

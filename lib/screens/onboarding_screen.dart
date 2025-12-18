@@ -37,9 +37,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _getStarted() {
-    Navigator.of(context).pushReplacementNamed(
-      SetupMasterPasswordScreen.routeName,
-    );
+    Navigator.of(
+      context,
+    ).pushReplacementNamed(SetupMasterPasswordScreen.routeName);
   }
 
   @override
@@ -121,9 +121,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(48),
                 ),
-                child: Text(
-                  _currentPage < 2 ? 'Next' : 'Get Started',
-                ),
+                child: Text(_currentPage < 2 ? 'Next' : 'Get Started'),
               ),
             ),
           ],
@@ -147,21 +145,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             width: 120,
             height: 120,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: Color.fromARGB(
+                (color.a * 0.1).round(),
+                color.r.round(),
+                color.g.round(),
+                color.b.round(),
+              ),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              icon,
-              size: 64,
-              color: color,
-            ),
+            child: Icon(icon, size: 64, color: color),
           ),
           const SizedBox(height: 48),
           Text(
             title,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
