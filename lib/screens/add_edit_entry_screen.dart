@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/vault_entry.dart';
 import '../services/vault_service.dart';
+import '../services/session_manager.dart';
+import '../services/premium_service.dart';
 import '../widgets/password_generator_dialog.dart';
 import '../widgets/password_strength_indicator.dart';
+import 'premium_screen.dart';
 
 class AddEditEntryScreen extends StatefulWidget {
   static const routeName = '/entry';
@@ -25,6 +28,12 @@ class _AddEditEntryScreenState extends State<AddEditEntryScreen> {
   bool _obscure = true;
   VaultEntry? _editing;
   bool _initializedFromArgs = false;
+
+  @override
+  void initState() {
+    super.initState();
+    sessionManager.recordActivity();
+  }
 
   @override
   void didChangeDependencies() {
@@ -57,6 +66,14 @@ class _AddEditEntryScreenState extends State<AddEditEntryScreen> {
   void _save() async {
     if (_formKey.currentState?.validate() != true) return;
 
+    // Check entry limit for free tier
+    if (_editing == null && !premiumService.canAddEntry()) {
+      if (!mounted) return;
+      _showUpgradeDialog('Entry Limit Reached');
+      return;
+    }
+
+    sessionManager.recordActivity();
     final now = DateTime.now();
     final id = _editing?.id ?? DateTime.now().microsecondsSinceEpoch.toString();
 
@@ -76,6 +93,31 @@ class _AddEditEntryScreenState extends State<AddEditEntryScreen> {
 
     if (!mounted) return;
     Navigator.of(context).pop();
+  }
+
+  void _showUpgradeDialog(String title) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(
+          premiumService.getEntryLimitMessage(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.of(context).pushNamed(PremiumScreen.routeName);
+            },
+            child: const Text('Upgrade to Premium'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _generatePassword() async {
@@ -192,7 +234,10 @@ class _AddEditEntryScreenState extends State<AddEditEntryScreen> {
               TextFormField(
                 controller: _passwordController,
                 obscureText: _obscure,
-                onChanged: (_) => setState(() {}), // Update strength indicator
+                onChanged: (_) {
+                  sessionManager.recordActivity();
+                  setState(() {}); // Update strength indicator
+                },
                 decoration: InputDecoration(
                   labelText: 'Password',
                   prefixIcon: const Icon(Icons.lock_outline),

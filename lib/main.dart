@@ -11,7 +11,12 @@ import 'screens/unlock_screen.dart';
 import 'screens/vault_home_screen.dart';
 import 'screens/add_edit_entry_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/password_generator_screen.dart';
+import 'screens/password_health_screen.dart';
+import 'screens/premium_screen.dart';
 import 'services/session_manager.dart';
+import 'services/subscription_service.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 // Global theme controller
 final ValueNotifier<ThemeMode> themeModeNotifier =
@@ -19,13 +24,60 @@ final ValueNotifier<ThemeMode> themeModeNotifier =
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Google Mobile Ads
+  await MobileAds.instance.initialize();
+  
   await Hive.initFlutter(); // Initialize encrypted local DB
   await sessionManager.init(); // Initialize session manager
+  
+  // Initialize subscription service
+  subscriptionService.addListener(() {
+    // Premium service will check subscription status when needed
+  });
+  
   runApp(const ProviderScope(child: VaultApp()));
 }
 
-class VaultApp extends StatelessWidget {
+class VaultApp extends StatefulWidget {
   const VaultApp({super.key});
+
+  @override
+  State<VaultApp> createState() => _VaultAppState();
+}
+
+class _VaultAppState extends State<VaultApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    // Lock the app when it goes to background
+    if (state == AppLifecycleState.paused || 
+        state == AppLifecycleState.inactive) {
+      // Only lock if session is currently unlocked
+      if (sessionManager.state == SessionState.unlocked) {
+        sessionManager.lock();
+      }
+    }
+    
+    // When app comes back to foreground, check session state
+    if (state == AppLifecycleState.resumed) {
+      // Session manager will handle navigation via listeners
+      // No need to do anything here as VaultHomeScreen listener handles it
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,6 +124,11 @@ class VaultApp extends StatelessWidget {
             VaultHomeScreen.routeName: (_) => const VaultHomeScreen(),
             AddEditEntryScreen.routeName: (_) => const AddEditEntryScreen(),
             SettingsScreen.routeName: (_) => const SettingsScreen(),
+            PasswordGeneratorScreen.routeName: (_) =>
+                const PasswordGeneratorScreen(),
+            PasswordHealthScreen.routeName: (_) =>
+                const PasswordHealthScreen(),
+            PremiumScreen.routeName: (_) => const PremiumScreen(),
           },
         );
       },

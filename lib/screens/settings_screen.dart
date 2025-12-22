@@ -5,6 +5,8 @@ import 'sign_in_screen.dart';
 import '../services/backup_service.dart';
 import '../services/session_manager.dart';
 import '../services/secure_storage_service.dart';
+import '../services/premium_service.dart';
+import 'premium_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   static const routeName = '/settings';
@@ -22,6 +24,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
+    sessionManager.recordActivity();
     _loadSettings();
   }
 
@@ -89,6 +92,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (confirmed != true) return;
 
+    if (!context.mounted) return;
+
     try {
       showDialog(
         context: context,
@@ -99,11 +104,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final backupService = BackupService();
       await backupService.restoreFromDrive();
 
+      if (!context.mounted) return;
       navigator.pop();
       messenger.showSnackBar(
         const SnackBar(content: Text('✅ Restore successful!')),
       );
     } catch (e) {
+      if (!context.mounted) return;
       navigator.pop();
       messenger.showSnackBar(SnackBar(content: Text('❌ Restore failed: $e')));
     }
@@ -175,6 +182,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: const Text('Use fingerprint / Face ID'),
                 value: _biometricsEnabled,
                 onChanged: (value) async {
+                  sessionManager.recordActivity();
                   await SecureStorageService.setBiometricsEnabled(value);
                   setState(() => _biometricsEnabled = value);
                 },
@@ -200,6 +208,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       .toList(),
                   onChanged: (value) async {
                     if (value != null) {
+                      sessionManager.recordActivity();
                       await sessionManager.setTimeoutMinutes(value);
                       setState(() => _autoLockMinutes = value);
                     }
@@ -217,18 +226,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.cloud_upload_outlined),
                 title: const Text('Backup to Google Drive'),
-                subtitle: const Text('Save encrypted vault to cloud'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _backup(context),
+                subtitle: Text(
+                  premiumService.canUseCloudBackup()
+                      ? 'Save encrypted vault to cloud'
+                      : 'Premium feature - Upgrade to unlock',
+                ),
+                trailing: premiumService.canUseCloudBackup()
+                    ? const Icon(Icons.chevron_right)
+                    : const Icon(Icons.lock_outline, size: 18),
+                onTap: premiumService.canUseCloudBackup()
+                    ? () => _backup(context)
+                    : () => Navigator.of(context).pushNamed(PremiumScreen.routeName),
               ),
 
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.cloud_download_outlined),
                 title: const Text('Restore from Google Drive'),
-                subtitle: const Text('Merge cloud backup with local data'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _restore(context),
+                subtitle: Text(
+                  premiumService.canUseCloudBackup()
+                      ? 'Merge cloud backup with local data'
+                      : 'Premium feature - Upgrade to unlock',
+                ),
+                trailing: premiumService.canUseCloudBackup()
+                    ? const Icon(Icons.chevron_right)
+                    : const Icon(Icons.lock_outline, size: 18),
+                onTap: premiumService.canUseCloudBackup()
+                    ? () => _restore(context)
+                    : () => Navigator.of(context).pushNamed(PremiumScreen.routeName),
               ),
 
               ListTile(
@@ -299,45 +324,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               const SizedBox(height: 32),
 
-              // Subscription Section (placeholder)
+              // Subscription Section
               Card(
-                color: colors.primaryContainer,
+                color: premiumService.isPremium
+                    ? Colors.green.withValues(alpha: 0.1)
+                    : colors.primaryContainer,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.star, color: colors.onPrimaryContainer),
+                          Icon(
+                            premiumService.isPremium
+                                ? Icons.verified_rounded
+                                : Icons.star,
+                            color: premiumService.isPremium
+                                ? Colors.green
+                                : colors.onPrimaryContainer,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              'VaultLock Premium',
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(color: colors.onPrimaryContainer),
+                              premiumService.isPremium
+                                  ? 'VaultLock Premium Active'
+                                  : 'VaultLock Premium',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: premiumService.isPremium
+                                        ? Colors.green
+                                        : colors.onPrimaryContainer,
+                                  ),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Cloud sync + unlimited entries + priority support',
-                        style: TextStyle(color: colors.onPrimaryContainer),
+                        premiumService.isPremium
+                            ? 'Enjoy all premium features - Unlimited entries, cloud sync, and more!'
+                            : 'Cloud sync + unlimited entries + priority support',
+                        style: TextStyle(
+                          color: premiumService.isPremium
+                              ? Colors.green.shade700
+                              : colors.onPrimaryContainer,
+                        ),
                       ),
                       const SizedBox(height: 12),
-                      FilledButton.tonal(
-                        onPressed: () {
-                          // Subscription integration pending - in_app_purchase package ready
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Subscription coming soon! \$3/month or \$30/year',
-                              ),
-                            ),
-                          );
-                        },
-                        child: const Text('Upgrade to Premium'),
-                      ),
+                      if (!premiumService.isPremium)
+                        FilledButton.tonal(
+                          onPressed: () {
+                            Navigator.of(context).pushNamed(PremiumScreen.routeName);
+                          },
+                          child: const Text('Upgrade to Premium'),
+                        )
+                      else
+                        OutlinedButton(
+                          onPressed: () {
+                            Navigator.of(context).pushNamed(PremiumScreen.routeName);
+                          },
+                          child: const Text('Manage Subscription'),
+                        ),
                     ],
                   ),
                 ),

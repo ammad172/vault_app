@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:local_auth/local_auth.dart';
 import '../services/secure_storage_service.dart';
 import '../services/vault_service.dart';
+import '../services/session_manager.dart';
 import 'vault_home_screen.dart';
 
 class UnlockScreen extends StatefulWidget {
@@ -51,6 +52,9 @@ class _UnlockScreenState extends State<UnlockScreen> {
     final keyBytes = await SecureStorageService.getVaultKey();
     await VaultService.init(Uint8List.fromList(keyBytes));
 
+    // Mark session as unlocked
+    sessionManager.unlock();
+
     if (!mounted) return;
     Navigator.of(context)
         .pushNamedAndRemoveUntil(VaultHomeScreen.routeName, (_) => false);
@@ -58,35 +62,47 @@ class _UnlockScreenState extends State<UnlockScreen> {
 
   void _unlock() async {
     final password = _passwordController.text;
-    final ok = await SecureStorageService.verifyMasterPassword(password);
-    if (!ok) {
+    
+    try {
+      final ok = await SecureStorageService.verifyMasterPassword(password);
+      if (!ok) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Incorrect master password')),
+        );
+        return;
+      }
+
+      await _initVaultAndGoHome();
+    } catch (e) {
+      // Handle lockout exception
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Incorrect master password')),
+        SnackBar(
+          content: Text(e.toString()),
+          duration: const Duration(seconds: 4),
+        ),
       );
-      return;
     }
-
-    await _initVaultAndGoHome();
   }
 
-Future<void> _unlockWithBiometric() async {
-  try {
-    final didAuth = await _auth.authenticate(
-      localizedReason: 'Unlock your vault',
-      biometricOnly: true, // supported in your version
-    );
+  Future<void> _unlockWithBiometric() async {
+    try {
+      final didAuth = await _auth.authenticate(
+        localizedReason: 'Unlock your vault',
+        biometricOnly: true, // supported in your version
+      );
 
-    if (!didAuth) return;
+      if (!didAuth) return;
 
-    await _initVaultAndGoHome();
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Biometric auth failed: $e')),
-    );
+      await _initVaultAndGoHome();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Biometric auth failed: $e')),
+      );
+    }
   }
-}
 
 
 

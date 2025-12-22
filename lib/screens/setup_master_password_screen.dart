@@ -3,6 +3,7 @@ import 'vault_home_screen.dart';
 import 'dart:typed_data';
 import '../services/secure_storage_service.dart';
 import '../services/vault_service.dart';
+import '../services/session_manager.dart';
 import '../widgets/password_strength_indicator.dart';
 
 class SetupMasterPasswordScreen extends StatefulWidget {
@@ -47,6 +48,9 @@ class _SetupMasterPasswordScreenState extends State<SetupMasterPasswordScreen> {
       final keyBytes = await SecureStorageService.getVaultKey();
       await VaultService.init(Uint8List.fromList(keyBytes));
 
+      // Mark session as unlocked after setup
+      sessionManager.unlock();
+
       if (!mounted) return;
       Navigator.of(context)
           .pushNamedAndRemoveUntil(VaultHomeScreen.routeName, (_) => false);
@@ -77,7 +81,7 @@ class _SetupMasterPasswordScreenState extends State<SetupMasterPasswordScreen> {
               const SizedBox(height: 16),
               Text(
                 'Create a master password',
-                style: Theme.of(context).textTheme. headlineSmall,
+                style: Theme.of(context).textTheme.headlineSmall,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
